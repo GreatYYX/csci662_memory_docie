@@ -1,3 +1,27 @@
+# Fixed readme
+
+## Dependencies
+
+```
+pytorch-lightning==1.0.6
+torch==1.6.0
+torchvision==0.7.0
+sentence-transformers==2.1.0
+transformers==4.23.1
+spacy==3.0
+```
+
+Install spacy language resource:
+
+```
+spacy download en-core-web-sm
+```
+
+Install Cuda version 10.2.
+
+
+Below is the original readme file:
+
 # Dynamic Global Memory for Document-level Argument Extraction
 
 Code and data for paper the ACL 22 paper ([link](http://xinyadu.github.io/papers/ACL22_Doc_level_informative_arg_extraction.pdf)).
