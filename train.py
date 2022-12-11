@@ -13,6 +13,8 @@ from pytorch_lightning.loggers import WandbLogger, TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 
+import sys
+sys.path.append('src/genie')
 
 from src.genie.data_module import RAMSDataModule
 from src.genie.ACE_data_module import ACEDataModule
@@ -21,6 +23,7 @@ from src.genie.model import GenIEModel
 
 
 logger = logging.getLogger(__name__)
+
 
 
 def main():
@@ -194,7 +197,6 @@ def main():
         trainer.fit(model, dm) 
     
 
-    
 
 if __name__ == "__main__":
     main()

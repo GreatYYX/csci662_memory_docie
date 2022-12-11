@@ -11,14 +11,23 @@ import torch
 from torch.utils.data import DataLoader 
 import pytorch_lightning as pl 
 
-from .data import IEDataset, my_collate
-from .utils import load_ontology, check_pronoun, clean_mention
+from data import IEDataset, my_collate
+from utils import load_ontology, check_pronoun, clean_mention
 
 from sentence_transformers import SentenceTransformer, util
+
+#import gensim.downloader as api
+#import numpy as np
+#import string
 
 MAX_CONTEXT_LENGTH=400 # measured in words 
 MAX_LENGTH=512
 MAX_TGT_LENGTH=70
+
+
+from pathlib import Path
+curr_file_path = Path(__file__).absolute()
+root_dir = str(curr_file_path.parent.parent.parent) + '/'
 
 class KAIROSDataModule(pl.LightningDataModule):
     '''
@@ -26,12 +35,28 @@ class KAIROSDataModule(pl.LightningDataModule):
     '''
     def __init__(self, args):
         super().__init__() 
-        self.hparams = args 
+        self.hparams = args
+        
         self.tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
         self.tokenizer.add_tokens([' <arg>',' <tgr>'])
 
+        #self.wv = api.load('glove-wiki-gigaword-300')
         self.sim_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
     
+#    def word2vec(self,sentences):
+#        words = sentences.split(' ')
+#        embedding = np.zeros(300)
+#        for word in words:
+#            if word in self.wv:
+#                token_vector = self.wv[word]
+#            else:
+#                token_vector = np.zeros(300)
+#        embedding = np.sum([token_vector, embedding], axis=0)
+#        doc = np.divide(embedding,len(words))
+#        return np.array(doc)
+
+
 
     def create_gold_gen(self, ex, ontology_dict,mark_trigger=True, index=0, ent2info=None, use_info=False):
         '''
@@ -165,8 +190,18 @@ class KAIROSDataModule(pl.LightningDataModule):
             tokenized_template.extend(self.tokenizer.tokenize(w, add_prefix_space=True))
         
         # calculate sbert embedding
+        
+        #context_emb = self.word2vec(' '.join(context_words))
+        #print(len(output_template))
+        #print(len(' '.join(context_words)))
+        #out_template_emb = self.word2vec(output_template)
+        #print(context_words)
         context_emb = self.sim_model.encode(' '.join(context_words), show_progress_bar=False)
         out_template_emb = self.sim_model.encode(output_template, show_progress_bar=False)
+        #print(type(context_emb)
+        #print(out_template_emb.shape)
+        #print(context_emb_1.shape)
+        #print(out_template_emb_1.shape)
         return tokenized_input_template, tokenized_template, context, context_emb, out_template_emb, ' '.join(context_words)
 
     
@@ -181,6 +216,7 @@ class KAIROSDataModule(pl.LightningDataModule):
                 data_dir = 'preprocessed_simtr_adv_{}'.format(self.hparams.dataset)
         else:
             data_dir = 'preprocessed_{}'.format(self.hparams.dataset)
+        print(data_dir)
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
             ontology_dict = load_ontology(self.hparams.dataset) 
@@ -216,7 +252,7 @@ class KAIROSDataModule(pl.LightningDataModule):
 
                             if evt_type not in ontology_dict: # should be a rare event type 
                                 continue 
-                            
+
                             input_template, output_template, context, context_emb, out_template_emb, context_words = self.create_gold_gen(ex, ontology_dict, self.hparams.mark_trigger, 
                                 index=i, ent2info=ent2info, use_info=self.hparams.use_info)
 
@@ -275,11 +311,11 @@ class KAIROSDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         if self.hparams.sim_train:
             if not self.hparams.adv:
-                dataset = IEDataset('preprocessed_simtr_{}/train.jsonl'.format(self.hparams.dataset))
+                dataset = IEDataset(root_dir + 'preprocessed_simtr_{}/train.jsonl'.format(self.hparams.dataset))
             else:
-                dataset = IEDataset('preprocessed_simtr_adv_{}/train.jsonl'.format(self.hparams.dataset))
+                dataset = IEDataset(root_dir + 'preprocessed_simtr_adv_{}/train.jsonl'.format(self.hparams.dataset))
         else:
-            dataset = IEDataset('preprocessed_{}/train.jsonl'.format(self.hparams.dataset))
+            dataset = IEDataset(root_dir + 'preprocessed_{}/train.jsonl'.format(self.hparams.dataset))
         
         dataloader = DataLoader(dataset, 
             pin_memory=True, num_workers=2, 
@@ -292,11 +328,11 @@ class KAIROSDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         if self.hparams.sim_train:
             if not self.hparams.adv:
-                dataset = IEDataset('preprocessed_simtr_{}/val.jsonl'.format(self.hparams.dataset))
+                dataset = IEDataset(root_dir + 'preprocessed_simtr_{}/val.jsonl'.format(self.hparams.dataset))
             else:
-                dataset = IEDataset('preprocessed_simtr_adv_{}/val.jsonl'.format(self.hparams.dataset))
+                dataset = IEDataset(root_dir + 'preprocessed_simtr_adv_{}/val.jsonl'.format(self.hparams.dataset))
         else:
-            dataset = IEDataset('preprocessed_{}/val.jsonl'.format(self.hparams.dataset))
+            dataset = IEDataset(root_dir + 'preprocessed_{}/val.jsonl'.format(self.hparams.dataset))
         
         dataloader = DataLoader(dataset, pin_memory=True, num_workers=2, 
             collate_fn=my_collate,
@@ -306,9 +342,9 @@ class KAIROSDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         # if self.hparams.sim_train:
         if not self.hparams.adv:
-            dataset = IEDataset('preprocessed_simtr_{}/test.jsonl'.format(self.hparams.dataset))
+            dataset = IEDataset(root_dir + 'preprocessed_simtr_{}/test.jsonl'.format(self.hparams.dataset))
         else:
-            dataset = IEDataset('preprocessed_simtr_adv_{}/test.jsonl'.format(self.hparams.dataset))
+            dataset = IEDataset(root_dir + 'preprocessed_simtr_adv_{}/test.jsonl'.format(self.hparams.dataset))
         # else:
 
             # dataset = IEDataset('preprocessed_{}/test.jsonl'.format(self.hparams.dataset))
@@ -334,6 +370,7 @@ if __name__ == '__main__':
     parser.add_argument('--sim_train', action='store_true', default=False)
     parser.add_argument('--adv', action='store_true', default=False)
     args = parser.parse_args() 
+    
 
     dm = KAIROSDataModule(args=args)
     dm.prepare_data() 

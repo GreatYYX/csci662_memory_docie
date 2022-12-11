@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 
 from sentence_transformers import SentenceTransformer, util
 sim_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+
+#import gensim.downloader as api
+#import numpy as np
+#import string
+#wv = api.load('glove-wiki-gigaword-300')
+
 MAX_LENGTH=512
 
 class GenIEModel(pl.LightningModule):
@@ -90,7 +96,7 @@ class GenIEModel(pl.LightningModule):
         "JudgeCourt": "JudgeCourt",
         }
         self.up_thresh = 4
-
+        print('current up_thresh:', self.up_thresh)
         self.ontology_dict = load_ontology(dataset="KAIROS")
         for key in self.ontology_dict:
             for role in self.ontology_dict[key]['arg_to_prev']:
@@ -154,6 +160,19 @@ class GenIEModel(pl.LightningModule):
     
         return self.model(**inputs)
 
+
+
+#    def word2vec(self,sentences):
+#        words = sentences.split(' ')
+#        embedding = np.zeros(300)
+#        for word in words:
+#            if word in wv:
+#                token_vector = wv[word]
+#            else:
+#                token_vector = np.zeros(300)
+#        embedding = np.sum([token_vector, embedding], axis=0)
+#        doc = np.divide(embedding,len(words))
+#        return np.array(doc)
 
     def training_step(self, batch, batch_idx):
         '''
@@ -252,6 +271,13 @@ class GenIEModel(pl.LightningModule):
         
         return predicted_args
 
+
+
+
+
+
+    
+
     def test_step(self, batch, batch_idx):
 
         if self.hparams.knowledge_pair_gen:
@@ -298,6 +324,8 @@ class GenIEModel(pl.LightningModule):
         if self.hparams.sim_train:
             # calculate sbert embedding and find/add most similar
             doc_key = batch['doc_key'][0]
+            print('-------------------------------------------------------')
+            print('-------------------------------------------------------')
             context_emb = sim_model.encode(batch['context_words'][0], show_progress_bar=False)
             most_sim_out_template = []
             context = batch['context_tokens'][0]
@@ -306,16 +334,16 @@ class GenIEModel(pl.LightningModule):
                 most_sim_idx = torch.argmax(cosine_scores, dim=-1)
                 # if len(all_out_template_embs[doc_key])>2: import ipdb; ipdb.set_trace()
                 most_sim_out_template = self.all_output_templates[doc_key][most_sim_idx]
-                # most_sim_out_template = self.all_output_templates[doc_key][-1] # random ablation
+                #most_sim_out_template = self.all_output_templates[doc_key][-1] # random ablation
                 # if len(self.all_out_template_embs[doc_key])>=2: 
                     # most_sim_out_template = self.all_output_templates[doc_key][0]
             # import ipdb; ipdb.set_trace()
-            # if most_sim_out_template:
+            #if most_sim_out_template:
             # context.extend(['</s>']+most_sim_out_template)
             context = most_sim_out_template+['</s>']+context
             # context = context
             # else:
-                # context.extend(['</s>']+batch['input_template'][0])
+            #context.extend(['</s>']+batch['input_template'][0])
             input_tokens = self.tokenizer.encode_plus(batch['input_template'][0], context,
                     add_special_tokens=True,
                     add_prefix_space=True,
@@ -332,7 +360,7 @@ class GenIEModel(pl.LightningModule):
 
         # gen without id_pairs
         sample_output_no_knowledge = self.model.generate({}, {}, input_token_ids, do_sample=False, #batch['input_token_ids']
-                                max_length=30, num_return_sequences=1,num_beams=1,)
+               num_return_sequences=1,num_beams=1,)
 
         if self.hparams.knowledge_pair_gen:
             if self.hparams.sample_gen:
@@ -388,10 +416,10 @@ class GenIEModel(pl.LightningModule):
             if id_pairs_down: # if id_pairs_up:
                 print(batch_idx+1)
                 print(id_pairs_down_print)
-                # print(id_pairs_up)
-                print("ored:", self.tokenizer.decode(sample_output_no_knowledge.squeeze(0), skip_special_tokens=True))
-                print("pred:", pred_template)
-                print("gold:", self.tokenizer.decode(batch['tgt_token_ids'][0], skip_special_tokens=True))
+                print(id_pairs_up)
+                #print("ored:", self.tokenizer.decode(sample_output_no_knowledge.squeeze(0), skip_special_tokens=True))
+                #print("pred:", pred_template)
+                #print("gold:", self.tokenizer.decode(batch['tgt_token_ids'][0], skip_special_tokens=True))
             # if batch_idx == 150: import ipdb; ipdb.set_trace()
         else:
             sample_output = sample_output_no_knowledge
@@ -405,9 +433,10 @@ class GenIEModel(pl.LightningModule):
             output_template = self.tokenizer.decode(sample_output[0][0], skip_special_tokens=True)
             # import ipdb; ipdb.set_trace()
             out_template_emb = sim_model.encode(output_template, show_progress_bar=False)
-
+            print('-------------------------------------------------------')
+            print('-------------------------------------------------------')
             space_tokenized_template = output_template.split()
-            tokenized_output_template = [] 
+            tokenized_output_template = []
             for w in space_tokenized_template:
                 tokenized_output_template.extend(self.tokenizer.tokenize(w, add_prefix_space=True))
 

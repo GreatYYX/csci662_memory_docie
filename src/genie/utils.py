@@ -1,7 +1,13 @@
 import json 
-import spacy 
+import spacy
 from spacy.tokens import Doc
-PRONOUN_FILE='pronoun_list.txt'
+
+from pathlib import Path
+curr_file_path = Path(__file__).absolute()
+root_dir = str(curr_file_path.parent.parent.parent) + '/'
+
+
+PRONOUN_FILE=root_dir+'pronoun_list.txt'
 pronoun_set = set() 
 with open(PRONOUN_FILE, 'r') as f:
     for line in f:
