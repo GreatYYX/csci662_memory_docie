@@ -2,6 +2,8 @@
 
 ## Dependencies
 
+Install following dependencies:
+
 ```
 pytorch-lightning==1.0.6
 torch==1.6.0
@@ -19,6 +21,29 @@ spacy download en-core-web-sm
 
 Install Cuda version 10.2.
 
+## Execution 
+
+To convert raw KAIROS data into JSON for training, testing and validation.
+
+```
+python src/genie/KAIROS_data_module.py
+```
+
+To train and test extraction model:
+
+```
+./scripts/train_kairos.sh
+./scripts/test_kairos.sh
+```
+
+
+### Test word2vec
+
+Uncomment the word2vec function and change SentenceTransformer related variables (e.g. `self.sim_model` to `self.wv`) in the `KAIROS_data_module.py` and `model.py`. Rerun the files to generate new JSON files for training and testing.
+
+### Test Sentence Bert
+
+Change pre-trained S-Bert model names in `self.sim_model` variable to test the performance of different S-Bert models.
 
 Below is the original readme file:
 
