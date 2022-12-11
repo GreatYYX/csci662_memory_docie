@@ -1,10 +1,10 @@
 # Reproduction of Dynamic Global Memory for Document-level Argument Extraction
 
-This is a executable version of https://github.com/xinyadu/memory_docie.
+This is an executable version of https://github.com/xinyadu/memory_docie.
 
 We fixed several issues. Since the purpose was to reproduce the work, we did not improve the structure and readability of the code.
 
-We do not know the original authors and the copyright is belong to the original authors. 
+Please be aware that we do not know the original authors and the copyright belongs to the original authors.
 
 ## Dependencies
 
